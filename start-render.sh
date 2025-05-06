@@ -72,37 +72,44 @@ MEILISEARCH_NO_ANALYTICS=false
 EOF
 fi
 
-# Générer la clé si manquante
+# Génération de la clé d'application si absente
 if ! grep -q "^APP_KEY=base64:" .env; then
   echo "Génération de la clé d'application..."
   php artisan key:generate --force
 fi
 
 # Permissions nécessaires
-echo "Permissions..."
+echo "Mise à jour des permissions..."
 chmod -R 775 storage bootstrap/cache
 
-# Optimisation Laravel
-echo "Nettoyage du cache..."
+# Nettoyage et préparation des caches
+echo "Nettoyage des caches Laravel..."
 php artisan config:clear
 php artisan cache:clear
 php artisan view:clear
 
-echo "Recréation des caches..."
+echo "Recréation des caches Laravel..."
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Attente que la DB soit dispo
+# Attente de la connexion à la base de données
 echo "Connexion à la base de données..."
-until php artisan migrate:status --force; do
+until php artisan migrate:status; do
     echo "En attente de la base de données..."
     sleep 5
 done
 
-echo "Exécution des migrations..."
+# Création des tables système Laravel si nécessaires
+echo "Préparation des tables système Laravel..."
+php artisan cache:table
+php artisan session:table
+php artisan queue:table
+
+# Exécution de toutes les migrations
+echo "Migration de toutes les tables..."
 php artisan migrate --force
 
-# Lancer le serveur
-echo "Lancement de Laravel sur le port ${PORT}"
+# Lancement du serveur Laravel
+echo "Démarrage du serveur Laravel sur le port ${PORT}"
 php artisan serve --host=0.0.0.0 --port=${PORT}
