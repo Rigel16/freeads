@@ -6,16 +6,16 @@ if [ ! -f .env ]; then
   cp .env.example .env
 fi
 
-# S'assurer que la configuration utilise MySQL
+# S'assurer que la configuration utilise MySQL (en fonction des variables d'environnement)
 echo "Configuration de la base de données MySQL"
-sed -i "s/DB_CONNECTION=.*/DB_CONNECTION=mysql/" .env
-grep -q "DB_HOST=" .env || echo "DB_HOST=${DB_HOST:-mysql}" >> .env
-grep -q "DB_PORT=" .env || echo "DB_PORT=${DB_PORT:-3306}" >> .env
-grep -q "DB_DATABASE=" .env || echo "DB_DATABASE=${DB_DATABASE:-laravel}" >> .env
-grep -q "DB_USERNAME=" .env || echo "DB_USERNAME=${DB_USERNAME:-sail}" >> .env
-grep -q "DB_PASSWORD=" .env || echo "DB_PASSWORD=${DB_PASSWORD:-password}" >> .env
+sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=mysql/" .env
+sed -i "s/^DB_HOST=.*/DB_HOST=${DB_HOST}/" .env  # Utilisation de la variable d'environnement DB_HOST
+sed -i "s/^DB_PORT=.*/DB_PORT=${DB_PORT:-3306}/" .env  # Valeur par défaut pour le port si non définie
+sed -i "s/^DB_DATABASE=.*/DB_DATABASE=${DB_DATABASE}/" .env
+sed -i "s/^DB_USERNAME=.*/DB_USERNAME=${DB_USERNAME}/" .env
+sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" .env
 
-# Vérifier et définir APP_KEY
+# Vérifier et définir APP_KEY si non existant
 if ! grep -q "APP_KEY=base64:" .env; then
   echo "Génération de la clé d'application"
   php artisan key:generate --force
@@ -38,14 +38,14 @@ php artisan view:cache
 
 # Tentative de connexion à la base de données et d'exécution des migrations
 echo "Test de connexion à la base de données..."
-if php artisan migrate:status --force; then
-    echo "Connexion à la base de données réussie, exécution des migrations..."
-    php artisan migrate --force
-else
-    echo "ERREUR: Impossible de se connecter à la base de données MySQL."
-    echo "Vérifiez les variables d'environnement DB_* sur Render."
-    echo "Démarrage du serveur quand même mais l'application pourrait ne pas fonctionner correctement."
-fi
+# Ajout d'un délai d'attente avant la connexion à la base de données pour éviter les erreurs de connexion
+until php artisan migrate:status --force; do
+    echo "En attente de la base de données..."
+    sleep 5
+done
+
+echo "Connexion à la base de données réussie, exécution des migrations..."
+php artisan migrate --force
 
 # Démarrage du serveur en utilisant le port défini par Render
 echo "Démarrage du serveur sur le port ${PORT}"
