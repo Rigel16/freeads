@@ -1,5 +1,19 @@
 FROM laravelsail/php83-composer
 
+# Installe les extensions PHP nécessaires (dont pdo_mysql)
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    git \
+    curl \
+    libzip-dev \
+    libpq-dev \
+    default-mysql-client \
+    && docker-php-ext-install pdo pdo_mysql
+
 WORKDIR /var/www/html
 
 COPY . .
