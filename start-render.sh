@@ -82,6 +82,16 @@ fi
 echo "Mise à jour des permissions..."
 chmod -R 775 storage bootstrap/cache
 
+# Création des tables système Laravel si nécessaires
+echo "Création des tables système Laravel..."
+php artisan cache:table
+php artisan session:table
+php artisan queue:table
+
+# Exécution de toutes les migrations
+echo "Exécution des migrations..."
+php artisan migrate --force
+
 # Nettoyage et préparation des caches
 echo "Nettoyage des caches Laravel..."
 php artisan config:clear
@@ -99,16 +109,6 @@ until php artisan migrate:status; do
     echo "En attente de la base de données..."
     sleep 5
 done
-
-# Création des tables système Laravel si nécessaires
-echo "Préparation des tables système Laravel..."
-php artisan cache:table
-php artisan session:table
-php artisan queue:table
-
-# Exécution de toutes les migrations
-echo "Migration de toutes les tables..."
-php artisan migrate --force
 
 # Lancement du serveur Laravel
 echo "Démarrage du serveur Laravel sur le port ${PORT}"
